@@ -1,0 +1,48 @@
+name: Deploy Redis Service
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Deploy Redis JAR and config, restart PM2
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_USER: jayakumar
+          REMOTE_HOST: 172.26.142.87
+          REMOTE_PATH: /home/jayakumar/jenkins_projects/redis
+          JAR_NAME: redis-0.0.1-SNAPSHOT.jar
+          CONFIG_FILE: application.properties
+          SERVICE_NAME: Redis
+          LOG_FILE: application.log
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+
+          echo "Copying JAR and config to remote server..."
+          scp -i private_key -o StrictHostKeyChecking=no target/$JAR_NAME $REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/$JAR_NAME
+          scp -i private_key -o StrictHostKeyChecking=no $CONFIG_FILE $REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH/$CONFIG_FILE
+
+          echo "Restarting Redis service with PM2 on remote..."
+          ssh -i private_key -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST <<EOF
+          pm2 restart $SERVICE_NAME
+          pm2 save
+          EOF
+
+          rm -f private_key

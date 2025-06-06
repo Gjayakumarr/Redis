@@ -42,6 +42,7 @@ public class UserResponse {
 	public void setData(Object data) {
 		this.data = data;
 	}
+
 	@Override
 	public String toString() {
 		return "UserResponse [statusCode=" + statusCode + ", message=" + message + ", status=" + status

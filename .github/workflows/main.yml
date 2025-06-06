@@ -3,7 +3,7 @@ name: Deploy Redis Service
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
